@@ -12,6 +12,11 @@
 -type role() :: atom().
 -export_type( [role/0] ).
 
+%%
+%%	Callback to be implemented by handlers that require authorization
+%%
+-callback roles( Req :: cowboy:req() ) -> [role()].
+
 -spec execute( cowboy:req(), cowboy_middleware:env() ) -> 
 	{ ok, cowboy:req(), cowboy_middleware:env() } 	|
 	{ suspend, module(), atom(), [any()] } 			|
