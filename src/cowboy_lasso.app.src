@@ -1,0 +1,15 @@
+{application, cowboy_lasso,
+ [{description, "Authorization middleware for Cowboy applications"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.
