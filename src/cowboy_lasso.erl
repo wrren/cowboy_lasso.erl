@@ -1,7 +1,7 @@
 %%
 %%	@author Warren Kenny
 %%	@doc Middleware for use with cowboy 1.0 or 2.0. Looks for a 'roles' property within
-%%	the provided environment variable and attempts to determine the roles required by the
+%%	the provided environment variable's 'lasso' map and attempts to determine the roles required by the
 %%	requested handler by calling Handler:roles( Req ). The 'roles' property must be provided
 %%	by a preceeding middleware and will depend on your session management approach.
 %%
@@ -16,21 +16,20 @@
 	{ ok, cowboy:req(), cowboy_middleware:env() } 	|
 	{ suspend, module(), atom(), [any()] } 			|
 	{ stop, cowboy:req() }.
+execute( Req, Env = #{ lasso := #{ roles := Roles }, handler := Handler } ) ->
+	execute( Req, Env, Roles, Handler );
+
+%%
+%%	Missing env keys
+%%
 execute( Req, Env ) ->
-	case { lists:keyfind( roles, 1, Env ), lists:keyfind( handler, 1, Env ) } of
-		{ _, false } ->
-			erlang:error( no_handler_specified );
-		{ false, Handler } -> 
-			execute( Req, Env, [], Handler );
-		{ Roles, Handler } -> 
-			execute( Req, Env, Roles, Handler )
-	end.
+	{ ok, Req, Env }.
 
 -spec execute( cowboy:req(), cowboy_middleware:env(), [role()], module() ) -> { ok, cowboy:req(), cowboy_middleware:env() } | { stop, cowboy:req() }.
 execute( Req, Env, Roles, Handler ) ->
 	case match_roles( Req, Roles, Handler ) of
 		true 	-> { ok, Req, Env };
-		false 	-> { stop, cowboy_req:reply( 403, #{}, <<>>, Req ) }
+		false 	-> reject( Req, Env )
 	end.
 
 -spec match_roles( cowboy:req(), [role()], module() ) -> boolean().
@@ -40,4 +39,16 @@ match_roles( Req, Roles, Handler ) ->
 		true 	-> lists:any( fun( Role ) -> lists:member( Role, Roles ) end, HandlerRoles );
 		false 	-> true
 	end.
-	
+
+%%
+%%	Reject the request and either stop with a 401, 403 or a redirect, depending on the configuration passed through the env variable
+%%
+-spec reject( cowboy:req(), cowboy_middleware:env() ) -> { stop, cowboy:req() }.
+reject( Req, #{ lasso := #{ signed_in := false, reject := { redirect, To } } } ) ->
+	{ stop, cowboy_req:reply( 301, #{ <<"Location">> => To }, <<>>, Req ) };
+
+reject( Req, #{ lasso := #{ signed_in := false } } ) ->
+	{ stop, cowboy_req:reply( 401, #{}, <<>>, Req ) };
+
+reject( Req, #{ lasso := #{ signed_in := true } } ) ->
+	{ stop, cowboy_req:reply( 403, #{}, <<>>, Req ) }.
