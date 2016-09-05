@@ -39,9 +39,8 @@ execute( Req, Env, Roles, Handler ) ->
 
 -spec match_roles( cowboy:req(), [role()], module() ) -> boolean().
 match_roles( Req, Roles, Handler ) ->
-	HandlerRoles = Handler:roles( Req ),
 	case erlang:function_exported( Handler, roles, 1 ) of
-		true 	-> lists:any( fun( Role ) -> lists:member( Role, Roles ) end, HandlerRoles );
+		true 	-> lists:any( fun( Role ) -> lists:member( Role, Roles ) end, Handler:roles( Req ) );
 		false 	-> true
 	end.
 
