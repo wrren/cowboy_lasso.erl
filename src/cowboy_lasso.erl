@@ -40,9 +40,16 @@ execute( Req, Env, Roles, Handler ) ->
 -spec match_roles( cowboy:req(), [role()], module() ) -> boolean().
 match_roles( Req, Roles, Handler ) ->
 	case erlang:function_exported( Handler, roles, 1 ) of
-		true 	-> lists:any( fun( Role ) -> lists:member( Role, Roles ) end, Handler:roles( Req ) );
+		true 	-> match_roles( Roles, Handler:roles( Req ) );
 		false 	-> true
 	end.
+
+-spec match_roles( [role()], [role()] ) -> boolean().
+match_roles( _Roles, [] ) ->
+	true;
+
+match_roles( Roles, HandlerRoles ) ->
+	lists:any( fun( Role ) -> lists:member( Role, Roles ) end, HandlerRoles ).
 
 %%
 %%	Reject the request and either stop with a 401, 403 or a redirect, depending on the configuration passed through the env variable
